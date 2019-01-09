@@ -39,21 +39,28 @@ app.post("/api/video_upload", upload.array("filepond", 12), function(
   // req.body will contain the text fields, if there were any
   console.log(req.body);
   res.send([req.files[0].filename]);
-  fileName = req.files[0].originalname;
-  console.log("filename is : " + fileName);
+  var files = [];
 
-  uploadFileToAzure(fileName, function(err) {
-    if (err) {
-      console.log("err");
-    }
+  var fileKeys = Object.keys(req.files);
+
+  fileKeys.forEach(function(key) {
+    fileName = req.files[key].originalname;
+    filePath = req.files[key].path;
+    console.log("filename is : " + req.files[key].originalname);
+
+    uploadFileToAzure(fileName, filePath, function(err) {
+      if (err) {
+        console.log("err");
+      }
+    });
   });
 });
 
 // function to upload files to Azure Blob Storage
 // deletes files once its been uploaded
-function uploadFileToAzure(fileName) {
+function uploadFileToAzure(fileName, filePath) {
   var containerName = "containerpublic";
-  var videoFilePath = path.resolve("./uploads/" + fileName);
+  var videoFilePath = filePath;
   var videoFile = path.basename(videoFilePath, path.extname(videoFilePath));
 
   blobService.createContainerIfNotExists(
