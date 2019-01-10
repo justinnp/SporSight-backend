@@ -7,16 +7,10 @@ var cors = require("cors");
 const readDir = util.promisify(fs.readdir);
 var multer = require("multer");
 var upload = multer({ dest: "../server/public/images/" });
-
-async function getImageList(dir) {
-  try {
-    return await readDir(path.join(__dirname, "public", dir));
-  } catch (error) {
-    throw error;
-  }
-}
-
 const app = express();
+
+//globals
+const containerName = 'containerpublic';
 
 app.use(cors());
 
@@ -29,11 +23,7 @@ var blobService = storage.createBlobService();
 
 /* This is the endpoint that handles the upload. FilePond expects a unique id returned
    so it can request an undo if needed. The filename prop works well for this. */
-app.post("/api/video_upload", upload.array("filepond", 12), function(
-  req,
-  res,
-  next
-) {
+app.post("/api/video_upload", upload.array("filepond", 12), function(req, res, next) {
   // req.files is array of `photos` files
   console.log(req.files);
   // req.body will contain the text fields, if there were any
@@ -56,10 +46,46 @@ app.post("/api/video_upload", upload.array("filepond", 12), function(
   });
 });
 
+//video download
+app.get('/api/video_archive/:videoName', (req, res, next) => {
+  var fileName = req.params.videoName
+  var startDate = new Date();
+  var expiryDate = new Date(startDate);
+  expiryDate.setMinutes(startDate.getMinutes() + 100);
+  startDate.setMinutes(startDate.getMinutes() - 100);
+  var sharedAccessPolicy = {
+    AccessPolicy: {
+      Permissions: storage.BlobUtilities.SharedAccessPermissions.READ,
+      Start: startDate,
+      Expiry: expiryDate
+    }
+  };
+  var token = blobService.generateSharedAccessSignature(
+    containerName,
+    fileName,
+    sharedAccessPolicy
+  );
+  var sasUrl = blobService.getUrl(containerName, fileName, token);
+  var obj = { sasUrl: sasUrl }
+  res.send(obj)
+})
+
+async function downloadBlob(containerName, blobName) {
+  const dowloadFilePath = path.resolve('./' + blobName.replace('.txt', '.downloaded.txt'));
+  return new Promise((resolve, reject) => {
+      blobService.getBlobToText(containerName, blobName, (err, data) => {
+          if (err) {
+              reject(err);
+          } else {
+              resolve({ message: `Blob downloaded "${data}"`, text: data });
+          }
+      });
+  });
+};
+
 // function to upload files to Azure Blob Storage
 // deletes files once its been uploaded
 function uploadFileToAzure(fileName, filePath) {
-  var containerName = "containerpublic";
   var videoFilePath = filePath;
   var videoFile = path.basename(videoFilePath, path.extname(videoFilePath));
 
@@ -99,4 +125,4 @@ function uploadFileToAzure(fileName, filePath) {
 
 app.use(express.static(path.join(__dirname, "public")));
 
-app.listen(3001, () => console.log("Example app listening on port 3001!"));
+app.listen(3001, () => console.log("Listening on port 3001!"));
