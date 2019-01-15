@@ -109,7 +109,7 @@ app.get("/login", (req, res, next) => {
       response: res, // required
       resourceURL: config.resourceURL, // optional. Provide a value if you want to specify the resource.
       customState: "my_state", // optional. Provide a value if you want to provide custom state value.
-      failureRedirect: "http://localhost:3000/"
+      failureRedirect: "http://localhost:3000/error"
     })(req, res, next);
   },
   function(req, res) {
@@ -122,12 +122,12 @@ app.get("/login", (req, res, next) => {
 app.get("/auth/openid/return", (req, res, next) => {
     passport.authenticate("azuread-openidconnect", {
       response: res, // required
-      failureRedirect: "http://localhost:3000/"
+      failureRedirect: "http://localhost:3000/error"
     })(req, res, next);
   },
   function(req, res) {
     log.info("We received a return from AzureAD.");
-    res.redirect("http://localhost:3000/");
+    res.redirect("http://localhost:3000/home");
   }
 );
 
@@ -136,12 +136,12 @@ app.post('/auth/openid/return', (req, res, next) => {
   console.log('hello from /auth/openid/return')
     passport.authenticate("azuread-openidconnect", {
       response: res,
-      failureRedirect: "http://localhost:3000/"
+      failureRedirect: "http://localhost:3000/error"
     })(req, res, next);
   },
   function(req, res) {
     log.info("We received a return from AzureAD.");
-    res.redirect("http://localhost:3000/");
+    res.redirect("http://localhost:3000/home");
   }
 );
 
